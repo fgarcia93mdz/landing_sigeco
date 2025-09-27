@@ -128,19 +128,7 @@ function getBotResponse(userMessage) {
   }
 }
 
-// Manejar envío de mensajes
-function sendMessage() {
-  const message = chatInput.value.trim();
-  if (message) {
-    addMessage(message, true);
-    chatInput.value = '';
-    
-    // Simular respuesta del bot después de un delay
-    setTimeout(() => {
-      addMessage(getBotResponse(message));
-    }, 1000 + Math.random() * 1500); // Delay realista
-  }
-}
+// La función sendMessage está definida más abajo con mejoras
 
 sendBtn.addEventListener('click', sendMessage);
 
@@ -150,17 +138,105 @@ chatInput.addEventListener('keypress', (e) => {
   }
 });
 
+// Variables del chat
+let questionsCollapsed = false;
+const quickQuestions = document.querySelector('.quick-questions');
+
+// Toggle collapse de preguntas frecuentes
+function toggleQuestions() {
+  questionsCollapsed = !questionsCollapsed;
+  
+  if (questionsCollapsed) {
+    quickQuestions.classList.add('collapsed');
+    chatMessages.classList.add('expanded');
+  } else {
+    quickQuestions.classList.remove('collapsed');
+    chatMessages.classList.remove('expanded');
+  }
+}
+
+// Auto-colapsar cuando el usuario empieza a chatear
+function autoCollapseQuestions() {
+  if (!questionsCollapsed) {
+    questionsCollapsed = true;
+    quickQuestions.classList.add('collapsed');
+    chatMessages.classList.add('expanded');
+  }
+}
+
+// Scroll suave al final
+function scrollToBottom() {
+  setTimeout(() => {
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }, 100);
+}
+
+// Mostrar indicador de escritura
+function showTypingIndicator() {
+  const typingDiv = document.createElement('div');
+  typingDiv.className = 'chat-message typing-indicator';
+  typingDiv.id = 'typing-indicator';
+  
+  typingDiv.innerHTML = `
+    <div class="message-content">
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+    </div>
+  `;
+  
+  chatMessages.appendChild(typingDiv);
+  scrollToBottom();
+}
+
+// Ocultar indicador de escritura
+function hideTypingIndicator() {
+  const typingIndicator = document.getElementById('typing-indicator');
+  if (typingIndicator) {
+    typingIndicator.remove();
+  }
+}
+
+// Click en título para toggle
+document.querySelector('.questions-title').addEventListener('click', toggleQuestions);
+
+// Auto-colapsar al enfocar input
+chatInput.addEventListener('focus', autoCollapseQuestions);
+
+// Función mejorada sendMessage
+function sendMessage() {
+  const message = chatInput.value.trim();
+  if (message) {
+    autoCollapseQuestions();
+    addMessage(message, true);
+    chatInput.value = '';
+    
+    // Mostrar typing indicator
+    showTypingIndicator();
+    
+    setTimeout(() => {
+      hideTypingIndicator();
+      addMessage(getBotResponse(message));
+    }, 1000 + Math.random() * 1500);
+  }
+}
+
 // Manejar preguntas frecuentes
 document.querySelectorAll('.question-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     const question = btn.dataset.question;
     const answer = btn.dataset.answer;
     
+    autoCollapseQuestions();
     addMessage(question, true);
     
+    // Mostrar typing indicator
+    showTypingIndicator();
+    
     setTimeout(() => {
+      hideTypingIndicator();
       addMessage(answer);
-    }, 800);
+    }, 1200);
   });
 });
 
