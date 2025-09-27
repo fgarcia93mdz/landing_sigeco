@@ -350,19 +350,256 @@ document.getElementById('demoForm').addEventListener('submit', e => {
   
   console.log('Demo request data:', data);
   
-  // Simulate form submission
-  setTimeout(() => {
-    showNotification('¡Demo solicitada exitosamente! 🚀 Te contactaremos en menos de 2 horas.', 'success');
-    
-    // Reset form
-    e.target.reset();
-    showStep(1);
-    
-    // Reset button
-    submitBtn.classList.remove('loading');
-    submitBtn.disabled = false;
-  }, 2000);
+  // Send data via WhatsApp and Email
+  sendDemoRequest(data, submitBtn, e.target);
 });
+
+// Function to send demo request data
+function sendDemoRequest(data, submitBtn, form) {
+  // Format data for sending
+  const formattedData = formatDemoData(data);
+  
+  // Show options to user
+  showSubmissionOptions(formattedData, submitBtn, form);
+}
+
+// Format the collected data into readable format
+function formatDemoData(data) {
+  const industryLabels = {
+    'manufactura': 'Manufactura',
+    'construccion': 'Construcción', 
+    'salud': 'Salud',
+    'logistica': 'Logística',
+    'energia': 'Energía',
+    'alimentaria': 'Alimentaria',
+    'mineria': 'Minería',
+    'otro': 'Otro'
+  };
+  
+  const extinctorLabels = {
+    '1-50': '1 - 50 extintores',
+    '51-200': '51 - 200 extintores', 
+    '201-500': '201 - 500 extintores',
+    '500+': 'Más de 500 extintores'
+  };
+  
+  const demoTypeLabels = {
+    'online': 'Demo Online (Videollamada)',
+    'presencial': 'Demo Presencial (Visita a instalaciones)'
+  };
+  
+  return {
+    nombre: data.name || 'No especificado',
+    email: data.email || 'No especificado', 
+    telefono: data.phone || 'No especificado',
+    empresa: data.company || 'No especificada',
+    industria: industryLabels[data.industry] || 'No especificada',
+    extintores: extinctorLabels[data.extinguishers] || 'No especificado',
+    tipoDemo: demoTypeLabels[data['demo-type']] || 'Demo Online',
+    comentarios: data.comments || 'Sin comentarios adicionales',
+    fecha: new Date().toLocaleString('es-ES', {
+      weekday: 'long',
+      year: 'numeric', 
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  };
+}
+
+// Show submission options to user
+function showSubmissionOptions(formattedData, submitBtn, form) {
+  const modal = createSubmissionModal(formattedData, submitBtn, form);
+  document.body.appendChild(modal);
+  
+  // Show modal with animation
+  setTimeout(() => {
+    modal.classList.add('active');
+  }, 100);
+}
+
+// Create modal with submission options
+function createSubmissionModal(data, submitBtn, form) {
+  const modal = document.createElement('div');
+  modal.className = 'submission-modal';
+  modal.id = 'submission-modal';
+  
+  // Generate WhatsApp message
+  const whatsappMessage = generateWhatsAppMessage(data);
+  const emailSubject = 'Solicitud de Demo - SIGECO';
+  const emailBody = generateEmailBody(data);
+  
+  modal.innerHTML = `
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Enviar Solicitud de Demo</h3>
+        <button class="modal-close" onclick="closeSubmissionModal()">&times;</button>
+      </div>
+      
+      <div class="modal-body">
+        <div class="submission-summary">
+          <h4>📋 Resumen de tu solicitud:</h4>
+          <div class="data-summary">
+            <div class="data-row"><strong>Nombre:</strong> ${data.nombre}</div>
+            <div class="data-row"><strong>Email:</strong> ${data.email}</div>
+            <div class="data-row"><strong>Teléfono:</strong> ${data.telefono}</div>
+            <div class="data-row"><strong>Empresa:</strong> ${data.empresa}</div>
+            <div class="data-row"><strong>Industria:</strong> ${data.industria}</div>
+            <div class="data-row"><strong>Cantidad de Extintores:</strong> ${data.extintores}</div>
+            <div class="data-row"><strong>Tipo de Demo:</strong> ${data.tipoDemo}</div>
+            ${data.comentarios !== 'Sin comentarios adicionales' ? 
+              `<div class="data-row"><strong>Comentarios:</strong> ${data.comentarios}</div>` : ''}
+          </div>
+        </div>
+        
+        <div class="submission-options">
+          <h4>🚀 Elige cómo enviar tu solicitud:</h4>
+          
+          <div class="option-card whatsapp-option">
+            <div class="option-icon">📱</div>
+            <div class="option-content">
+              <h5>WhatsApp (Recomendado)</h5>
+              <p>Respuesta inmediata • Coordinación directa</p>
+              <button class="btn btn-primary btn-whatsapp" onclick="sendViaWhatsApp('${encodeURIComponent(whatsappMessage)}')">
+                <span class="btn-icon">💬</span>
+                <span class="btn-text">Enviar por WhatsApp</span>
+              </button>
+            </div>
+          </div>
+          
+          <div class="option-card email-option">
+            <div class="option-icon">📧</div>
+            <div class="option-content">
+              <h5>Email</h5>
+              <p>Registro formal • Respuesta en 2-4 horas</p>
+              <button class="btn btn-outline btn-email" onclick="sendViaEmail('${encodeURIComponent(emailSubject)}', '${encodeURIComponent(emailBody)}')">
+                <span class="btn-icon">✉️</span>
+                <span class="btn-text">Enviar por Email</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeSubmissionModal()">Cancelar</button>
+      </div>
+    </div>
+  `;
+  
+  return modal;
+}
+
+// Generate WhatsApp message
+function generateWhatsAppMessage(data) {
+  return `🚀 *SOLICITUD DE DEMO SIGECO*
+
+👤 *Datos de Contacto:*
+• Nombre: ${data.nombre}
+• Email: ${data.email}
+• Teléfono: ${data.telefono}
+
+🏢 *Información Empresarial:*
+• Empresa: ${data.empresa}
+• Industria: ${data.industria}
+• Cantidad de Extintores: ${data.extintores}
+
+🎯 *Preferencias de Demo:*
+• Tipo: ${data.tipoDemo}
+${data.comentarios !== 'Sin comentarios adicionales' ? `• Comentarios: ${data.comentarios}` : ''}
+
+📅 *Fecha de Solicitud:* ${data.fecha}
+
+¡Hola! Quiero solicitar una demo de SIGECO según los datos arriba. ¿Cuándo podemos coordinar?`;
+}
+
+// Generate email body
+function generateEmailBody(data) {
+  return `Estimado equipo SIGECO,
+
+Solicito una demo personalizada del sistema SIGECO con los siguientes datos:
+
+DATOS DE CONTACTO:
+- Nombre: ${data.nombre}
+- Email: ${data.email}  
+- Teléfono: ${data.telefono}
+
+INFORMACIÓN EMPRESARIAL:
+- Empresa: ${data.empresa}
+- Industria: ${data.industria}
+- Cantidad de Extintores: ${data.extintores}
+
+PREFERENCIAS DE DEMO:
+- Tipo: ${data.tipoDemo}
+${data.comentarios !== 'Sin comentarios adicionales' ? `- Comentarios: ${data.comentarios}` : ''}
+
+Fecha de solicitud: ${data.fecha}
+
+Quedo a la espera de su contacto para coordinar la demo.
+
+Saludos cordiales,
+${data.nombre}`;
+}
+
+// Send via WhatsApp
+function sendViaWhatsApp(message) {
+  const whatsappUrl = `https://wa.me/5492615995585?text=${message}`;
+  window.open(whatsappUrl, '_blank');
+  
+  // Close modal and show success
+  closeSubmissionModal();
+  setTimeout(() => {
+    showSuccessMessage('whatsapp');
+  }, 500);
+}
+
+// Send via Email  
+function sendViaEmail(subject, body) {
+  const emailUrl = `mailto:info@sigeco.com?subject=${subject}&body=${body}`;
+  window.location.href = emailUrl;
+  
+  // Close modal and show success
+  closeSubmissionModal();
+  setTimeout(() => {
+    showSuccessMessage('email');
+  }, 500);
+}
+
+// Close submission modal
+function closeSubmissionModal() {
+  const modal = document.getElementById('submission-modal');
+  if (modal) {
+    modal.classList.remove('active');
+    setTimeout(() => {
+      modal.remove();
+      // Reset form state
+      const submitBtn = document.querySelector('.submit-btn');
+      const form = document.getElementById('demoForm');
+      if (submitBtn) {
+        submitBtn.classList.remove('loading');
+        submitBtn.disabled = false;
+      }
+    }, 300);
+  }
+}
+
+// Show success message
+function showSuccessMessage(method) {
+  const messages = {
+    whatsapp: '¡Solicitud enviada por WhatsApp! 📱 Te responderemos inmediatamente.',
+    email: '¡Solicitud enviada por Email! 📧 Te contactaremos en las próximas 2-4 horas.'
+  };
+  
+  showNotification(messages[method], 'success');
+  
+  // Reset form
+  const form = document.getElementById('demoForm');
+  if (form) {
+    form.reset();
+    showStep(1);
+  }
+}
 
 // Input animations and validation
 document.querySelectorAll('.form-input, .form-select, .form-textarea').forEach(input => {
