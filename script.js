@@ -365,6 +365,12 @@ function sendDemoRequest(data, submitBtn, form) {
 
 // Format the collected data into readable format
 function formatDemoData(data) {
+  // Use language manager if available, fallback to default
+  if (window.languageManager) {
+    return window.languageManager.formatDemoDataForLanguage(data);
+  }
+  
+  // Fallback for Spanish
   const industryLabels = {
     'manufactura': 'Manufactura',
     'construccion': 'Construcción', 
@@ -425,45 +431,84 @@ function createSubmissionModal(data, submitBtn, form) {
   modal.className = 'submission-modal';
   modal.id = 'submission-modal';
   
-  // Generate WhatsApp message
+  // Get translations
+  const lang = window.languageManager ? window.languageManager.currentLanguage : 'es';
+  const t = window.translations ? window.translations[lang].modal : {
+    title: 'Enviar Solicitud de Demo',
+    summary: '📋 Resumen de tu solicitud:',
+    options: '🚀 Elige cómo enviar tu solicitud:',
+    whatsapp: {
+      title: 'WhatsApp (Recomendado)',
+      desc: 'Respuesta inmediata • Coordinación directa',
+      button: 'Enviar por WhatsApp'
+    },
+    email: {
+      title: 'Email',
+      desc: 'Registro formal • Respuesta en 2-4 horas', 
+      button: 'Enviar por Email'
+    },
+    cancel: 'Cancelar'
+  };
+  
+  const fieldLabels = window.translations ? window.translations[lang].demo.fields : {
+    name: 'Nombre',
+    email: 'Email',
+    phone: 'Teléfono',
+    company: 'Empresa', 
+    industry: 'Industria',
+    extinguishers: 'Cantidad de Extintores',
+    demoType: 'Tipo de Demo',
+    comments: 'Comentarios'
+  };
+  
+  // Generate messages
   const whatsappMessage = generateWhatsAppMessage(data);
-  const emailSubject = 'Solicitud de Demo - SIGECO';
+  const emailSubjects = {
+    es: 'Solicitud de Demo - SIGECO',
+    en: 'Demo Request - SIGECO',
+    pt: 'Solicitação de Demo - SIGECO'
+  };
+  const emailSubject = emailSubjects[lang] || emailSubjects.es;
   const emailBody = generateEmailBody(data);
+  
+  // Check if has comments
+  const noCommentsTexts = ['Sin comentarios adicionales', 'No additional comments', 'Sem comentários adicionais'];
+  const hasComments = data.comentarios && !noCommentsTexts.includes(data.comentarios);
   
   modal.innerHTML = `
     <div class="modal-content">
       <div class="modal-header">
-        <h3>Enviar Solicitud de Demo</h3>
+        <h3>${t.title}</h3>
         <button class="modal-close" onclick="closeSubmissionModal()">&times;</button>
       </div>
       
       <div class="modal-body">
         <div class="submission-summary">
-          <h4>📋 Resumen de tu solicitud:</h4>
+          <h4>${t.summary}</h4>
           <div class="data-summary">
-            <div class="data-row"><strong>Nombre:</strong> ${data.nombre}</div>
-            <div class="data-row"><strong>Email:</strong> ${data.email}</div>
-            <div class="data-row"><strong>Teléfono:</strong> ${data.telefono}</div>
-            <div class="data-row"><strong>Empresa:</strong> ${data.empresa}</div>
-            <div class="data-row"><strong>Industria:</strong> ${data.industria}</div>
-            <div class="data-row"><strong>Cantidad de Extintores:</strong> ${data.extintores}</div>
-            <div class="data-row"><strong>Tipo de Demo:</strong> ${data.tipoDemo}</div>
-            ${data.comentarios !== 'Sin comentarios adicionales' ? 
-              `<div class="data-row"><strong>Comentarios:</strong> ${data.comentarios}</div>` : ''}
+            <div class="data-row"><strong>${fieldLabels.name}:</strong> ${data.nombre}</div>
+            <div class="data-row"><strong>${fieldLabels.email}:</strong> ${data.email}</div>
+            <div class="data-row"><strong>${fieldLabels.phone}:</strong> ${data.telefono}</div>
+            <div class="data-row"><strong>${fieldLabels.company}:</strong> ${data.empresa}</div>
+            <div class="data-row"><strong>${fieldLabels.industry}:</strong> ${data.industria}</div>
+            <div class="data-row"><strong>${fieldLabels.extinguishers}:</strong> ${data.extintores}</div>
+            <div class="data-row"><strong>${fieldLabels.demoType}:</strong> ${data.tipoDemo}</div>
+            ${hasComments ? 
+              `<div class="data-row"><strong>${fieldLabels.comments}:</strong> ${data.comentarios}</div>` : ''}
           </div>
         </div>
         
         <div class="submission-options">
-          <h4>🚀 Elige cómo enviar tu solicitud:</h4>
+          <h4>${t.options}</h4>
           
           <div class="option-card whatsapp-option">
             <div class="option-icon">📱</div>
             <div class="option-content">
-              <h5>WhatsApp (Recomendado)</h5>
-              <p>Respuesta inmediata • Coordinación directa</p>
+              <h5>${t.whatsapp.title}</h5>
+              <p>${t.whatsapp.desc}</p>
               <button class="btn btn-primary btn-whatsapp" onclick="sendViaWhatsApp('${encodeURIComponent(whatsappMessage)}')">
                 <span class="btn-icon">💬</span>
-                <span class="btn-text">Enviar por WhatsApp</span>
+                <span class="btn-text">${t.whatsapp.button}</span>
               </button>
             </div>
           </div>
@@ -471,11 +516,11 @@ function createSubmissionModal(data, submitBtn, form) {
           <div class="option-card email-option">
             <div class="option-icon">📧</div>
             <div class="option-content">
-              <h5>Email</h5>
-              <p>Registro formal • Respuesta en 2-4 horas</p>
+              <h5>${t.email.title}</h5>
+              <p>${t.email.desc}</p>
               <button class="btn btn-outline btn-email" onclick="sendViaEmail('${encodeURIComponent(emailSubject)}', '${encodeURIComponent(emailBody)}')">
                 <span class="btn-icon">✉️</span>
-                <span class="btn-text">Enviar por Email</span>
+                <span class="btn-text">${t.email.button}</span>
               </button>
             </div>
           </div>
@@ -483,7 +528,7 @@ function createSubmissionModal(data, submitBtn, form) {
       </div>
       
       <div class="modal-footer">
-        <button class="btn btn-secondary" onclick="closeSubmissionModal()">Cancelar</button>
+        <button class="btn btn-secondary" onclick="closeSubmissionModal()">${t.cancel}</button>
       </div>
     </div>
   `;
@@ -491,54 +536,178 @@ function createSubmissionModal(data, submitBtn, form) {
   return modal;
 }
 
-// Generate WhatsApp message
+// Generate WhatsApp message with multi-language support
 function generateWhatsAppMessage(data) {
-  return `🚀 *SOLICITUD DE DEMO SIGECO*
+  const lang = window.languageManager ? window.languageManager.currentLanguage : 'es';
+  
+  const templates = {
+    es: {
+      title: '🚀 *SOLICITUD DE DEMO SIGECO*',
+      contact: '👤 *Datos de Contacto:*',
+      company: '🏢 *Información Empresarial:*',
+      preferences: '🎯 *Preferencias de Demo:*',
+      date: '📅 *Fecha de Solicitud:*',
+      message: '¡Hola! Quiero solicitar una demo de SIGECO según los datos arriba. ¿Cuándo podemos coordinar?',
+      name: 'Nombre',
+      email: 'Email', 
+      phone: 'Teléfono',
+      companyName: 'Empresa',
+      industry: 'Industria',
+      extinguishers: 'Cantidad de Extintores',
+      type: 'Tipo',
+      comments: 'Comentarios',
+      noComments: 'Sin comentarios adicionales'
+    },
+    en: {
+      title: '🚀 *SIGECO DEMO REQUEST*',
+      contact: '👤 *Contact Information:*',
+      company: '🏢 *Company Information:*', 
+      preferences: '🎯 *Demo Preferences:*',
+      date: '📅 *Request Date:*',
+      message: 'Hello! I want to request a SIGECO demo according to the data above. When can we coordinate?',
+      name: 'Name',
+      email: 'Email',
+      phone: 'Phone',
+      companyName: 'Company', 
+      industry: 'Industry',
+      extinguishers: 'Number of Extinguishers',
+      type: 'Type',
+      comments: 'Comments',
+      noComments: 'No additional comments'
+    },
+    pt: {
+      title: '🚀 *SOLICITAÇÃO DE DEMO SIGECO*',
+      contact: '👤 *Dados de Contato:*',
+      company: '🏢 *Informações da Empresa:*',
+      preferences: '🎯 *Preferências da Demo:*',
+      date: '📅 *Data da Solicitação:*',
+      message: 'Olá! Quero solicitar uma demo do SIGECO conforme os dados acima. Quando podemos coordenar?',
+      name: 'Nome',
+      email: 'E-mail',
+      phone: 'Telefone', 
+      companyName: 'Empresa',
+      industry: 'Setor',
+      extinguishers: 'Quantidade de Extintores',
+      type: 'Tipo',
+      comments: 'Comentários',
+      noComments: 'Sem comentários adicionais'
+    }
+  };
+  
+  const t = templates[lang] || templates.es;
+  const hasComments = data.comentarios !== t.noComments && data.comentarios !== 'No additional comments' && data.comentarios !== 'Sem comentários adicionais';
+  
+  return `${t.title}
 
-👤 *Datos de Contacto:*
-• Nombre: ${data.nombre}
-• Email: ${data.email}
-• Teléfono: ${data.telefono}
+${t.contact}
+• ${t.name}: ${data.nombre}
+• ${t.email}: ${data.email}
+• ${t.phone}: ${data.telefono}
 
-🏢 *Información Empresarial:*
-• Empresa: ${data.empresa}
-• Industria: ${data.industria}
-• Cantidad de Extintores: ${data.extintores}
+${t.company}
+• ${t.companyName}: ${data.empresa}
+• ${t.industry}: ${data.industria}
+• ${t.extinguishers}: ${data.extintores}
 
-🎯 *Preferencias de Demo:*
-• Tipo: ${data.tipoDemo}
-${data.comentarios !== 'Sin comentarios adicionales' ? `• Comentarios: ${data.comentarios}` : ''}
+${t.preferences}
+• ${t.type}: ${data.tipoDemo}
+${hasComments ? `• ${t.comments}: ${data.comentarios}` : ''}
 
-📅 *Fecha de Solicitud:* ${data.fecha}
+${t.date} ${data.fecha}
 
-¡Hola! Quiero solicitar una demo de SIGECO según los datos arriba. ¿Cuándo podemos coordinar?`;
+${t.message}`;
 }
 
-// Generate email body
+// Generate email body with multi-language support
 function generateEmailBody(data) {
-  return `Estimado equipo SIGECO,
+  const lang = window.languageManager ? window.languageManager.currentLanguage : 'es';
+  
+  const templates = {
+    es: {
+      greeting: 'Estimado equipo SIGECO,',
+      intro: 'Solicito una demo personalizada del sistema SIGECO con los siguientes datos:',
+      contact: 'DATOS DE CONTACTO:',
+      company: 'INFORMACIÓN EMPRESARIAL:',
+      preferences: 'PREFERENCIAS DE DEMO:',
+      requestDate: 'Fecha de solicitud:',
+      closing: 'Quedo a la espera de su contacto para coordinar la demo.',
+      regards: 'Saludos cordiales,',
+      name: 'Nombre',
+      email: 'Email',
+      phone: 'Teléfono',
+      companyName: 'Empresa',
+      industry: 'Industria', 
+      extinguishers: 'Cantidad de Extintores',
+      type: 'Tipo',
+      comments: 'Comentarios',
+      noComments: 'Sin comentarios adicionales'
+    },
+    en: {
+      greeting: 'Dear SIGECO team,',
+      intro: 'I request a personalized demo of the SIGECO system with the following information:',
+      contact: 'CONTACT INFORMATION:',
+      company: 'COMPANY INFORMATION:',
+      preferences: 'DEMO PREFERENCES:',
+      requestDate: 'Request date:',
+      closing: 'I look forward to your contact to coordinate the demo.',
+      regards: 'Best regards,',
+      name: 'Name',
+      email: 'Email',
+      phone: 'Phone',
+      companyName: 'Company',
+      industry: 'Industry',
+      extinguishers: 'Number of Extinguishers',
+      type: 'Type',
+      comments: 'Comments',
+      noComments: 'No additional comments'
+    },
+    pt: {
+      greeting: 'Estimada equipe SIGECO,',
+      intro: 'Solicito uma demo personalizada do sistema SIGECO com as seguintes informações:',
+      contact: 'DADOS DE CONTATO:',
+      company: 'INFORMAÇÕES DA EMPRESA:',
+      preferences: 'PREFERÊNCIAS DA DEMO:',
+      requestDate: 'Data da solicitação:',
+      closing: 'Aguardo seu contato para coordenar a demo.',
+      regards: 'Atenciosamente,',
+      name: 'Nome',
+      email: 'E-mail',
+      phone: 'Telefone',
+      companyName: 'Empresa',
+      industry: 'Setor',
+      extinguishers: 'Quantidade de Extintores',
+      type: 'Tipo', 
+      comments: 'Comentários',
+      noComments: 'Sem comentários adicionais'
+    }
+  };
+  
+  const t = templates[lang] || templates.es;
+  const hasComments = data.comentarios !== t.noComments && data.comentarios !== 'No additional comments' && data.comentarios !== 'Sem comentários adicionais';
+  
+  return `${t.greeting}
 
-Solicito una demo personalizada del sistema SIGECO con los siguientes datos:
+${t.intro}
 
-DATOS DE CONTACTO:
-- Nombre: ${data.nombre}
-- Email: ${data.email}  
-- Teléfono: ${data.telefono}
+${t.contact}
+- ${t.name}: ${data.nombre}
+- ${t.email}: ${data.email}
+- ${t.phone}: ${data.telefono}
 
-INFORMACIÓN EMPRESARIAL:
-- Empresa: ${data.empresa}
-- Industria: ${data.industria}
-- Cantidad de Extintores: ${data.extintores}
+${t.company}
+- ${t.companyName}: ${data.empresa}
+- ${t.industry}: ${data.industria}
+- ${t.extinguishers}: ${data.extintores}
 
-PREFERENCIAS DE DEMO:
-- Tipo: ${data.tipoDemo}
-${data.comentarios !== 'Sin comentarios adicionales' ? `- Comentarios: ${data.comentarios}` : ''}
+${t.preferences}
+- ${t.type}: ${data.tipoDemo}
+${hasComments ? `- ${t.comments}: ${data.comentarios}` : ''}
 
-Fecha de solicitud: ${data.fecha}
+${t.requestDate} ${data.fecha}
 
-Quedo a la espera de su contacto para coordinar la demo.
+${t.closing}
 
-Saludos cordiales,
+${t.regards}
 ${data.nombre}`;
 }
 
@@ -586,12 +755,13 @@ function closeSubmissionModal() {
 
 // Show success message
 function showSuccessMessage(method) {
-  const messages = {
+  const lang = window.languageManager ? window.languageManager.currentLanguage : 'es';
+  const t = window.translations ? window.translations[lang].modal.success : {
     whatsapp: '¡Solicitud enviada por WhatsApp! 📱 Te responderemos inmediatamente.',
     email: '¡Solicitud enviada por Email! 📧 Te contactaremos en las próximas 2-4 horas.'
   };
   
-  showNotification(messages[method], 'success');
+  showNotification(t[method], 'success');
   
   // Reset form
   const form = document.getElementById('demoForm');
